@@ -179,6 +179,51 @@ textarea {
   white-space: nowrap;
 }
 
+.kv-list-item-wrap {
+  position: relative;
+}
+
+.kv-note-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.kv-pin-badge {
+  flex: 0 0 auto;
+}
+
+.kv-list-item-actions {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition);
+}
+
+.kv-list-item-wrap:hover .kv-list-item-actions,
+.kv-list-item-wrap:focus-within .kv-list-item-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.kv-icon-btn-primary {
+  border-color: rgba(37, 99, 235, 0.35);
+  background: rgba(37, 99, 235, 0.12);
+  color: var(--color-primary);
+}
+
+.kv-highlight {
+  background: rgba(245, 158, 11, 0.25);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 6px;
+}
+
 .kv-note-snippet {
   font-size: 12px;
   color: var(--color-text-muted);

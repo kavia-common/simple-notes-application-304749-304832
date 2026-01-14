@@ -25,7 +25,18 @@ function App() {
   // eslint-disable-next-line no-unused-vars
   const unusedApiBaseForFuture = API_BASE;
 
-  const { sortedNotes, createNote, updateNote, deleteNote, getNoteById, searchNotes } = useNotes();
+  const {
+    sortedNotes,
+    createNote,
+    updateNote,
+    togglePinned,
+    duplicateNote,
+    deleteNote,
+    getNoteById,
+    searchNotes,
+    exportNotesToFile,
+    importNotesFromJsonText,
+  } = useNotes();
   const { toasts, pushToast, removeToast } = useToasts();
 
   const [selectedNoteId, setSelectedNoteId] = useState(null);
@@ -33,6 +44,9 @@ function App() {
 
   const [savingState, setSavingState] = useState("idle"); // "idle" | "saving" | "saved"
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+
+  // Used to trigger "new note autofocus title" without forcing focus on every note switch.
+  const [autoFocusTitleKey, setAutoFocusTitleKey] = useState(0);
 
   // Select first note by default (or keep selection if still exists)
   useEffect(() => {
@@ -63,7 +77,52 @@ function App() {
     setSelectedNoteId(n.id);
     setSearchQuery("");
     setSavingState("idle");
+    setAutoFocusTitleKey((k) => k + 1);
     pushToast({ kind: "success", title: "Note created", description: "Your new note is ready." });
+  };
+
+  const onTogglePinned = (id) => {
+    togglePinned(id);
+    const nowPinned = !getNoteById(id)?.pinned;
+    pushToast({
+      kind: "info",
+      title: nowPinned ? "Pinned" : "Unpinned",
+      description: nowPinned ? "This note will stay at the top." : "This note will follow normal sorting.",
+    });
+  };
+
+  const onDuplicate = () => {
+    if (!selectedNoteId) return;
+    const copy = duplicateNote(selectedNoteId);
+    if (!copy) return;
+    setSelectedNoteId(copy.id);
+    setSearchQuery("");
+    setSavingState("idle");
+    setAutoFocusTitleKey((k) => k + 1);
+    pushToast({ kind: "success", title: "Note duplicated", description: "Created a copy and selected it." });
+  };
+
+  const onExportAll = () => {
+    try {
+      exportNotesToFile();
+      pushToast({ kind: "success", title: "Export started", description: "Downloading notes as JSON." });
+    } catch (e) {
+      pushToast({ kind: "error", title: "Export failed", description: String(e?.message || e) });
+    }
+  };
+
+  const onImportFileSelected = async (file) => {
+    try {
+      const text = await file.text();
+      const result = importNotesFromJsonText(text);
+      if (!result.ok) {
+        pushToast({ kind: "error", title: "Import failed", description: result.error });
+        return;
+      }
+      pushToast({ kind: "success", title: "Import complete", description: `Imported ${result.count} note(s).` });
+    } catch (e) {
+      pushToast({ kind: "error", title: "Import failed", description: String(e?.message || e) });
+    }
   };
 
   const onChangeTitle = (nextTitle) => {
@@ -117,6 +176,7 @@ function App() {
             setSearchQuery={setSearchQuery}
             onCreate={onCreate}
             onSelect={setSelectedNoteId}
+            onTogglePinned={onTogglePinned}
             loading={false}
             error={null}
           />
@@ -128,6 +188,10 @@ function App() {
             onChangeTitle={onChangeTitle}
             onChangeBody={onChangeBody}
             onRequestDelete={onRequestDelete}
+            onDuplicate={onDuplicate}
+            onExportAll={onExportAll}
+            onImportFileSelected={onImportFileSelected}
+            autoFocusTitleKey={autoFocusTitleKey}
           />
         }
       />

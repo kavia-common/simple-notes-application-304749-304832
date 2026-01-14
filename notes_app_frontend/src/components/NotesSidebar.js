@@ -14,6 +14,7 @@ export function NotesSidebar({
   setSearchQuery,
   onCreate,
   onSelect,
+  onTogglePinned,
   loading = false,
   error = null,
 }) {
@@ -112,6 +113,8 @@ export function NotesSidebar({
               note={n}
               selected={n.id === selectedNoteId}
               onSelect={onSelect}
+              onTogglePinned={onTogglePinned}
+              highlightQuery={searchQuery}
               onKeyDown={onListKeyDown}
               tabIndex={n.id === activeId ? 0 : -1}
               setButtonRef={(el) => {
