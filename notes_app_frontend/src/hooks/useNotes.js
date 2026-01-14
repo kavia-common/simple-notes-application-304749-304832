@@ -49,10 +49,9 @@ function coerceEnvelope(raw) {
   }
 
   if (raw && typeof raw === "object") {
-    const v = typeof raw.version === "number" ? raw.version : STORAGE_VERSION;
     const rawNotes = Array.isArray(raw.notes) ? raw.notes : null;
     if (rawNotes) {
-      // If in future we bump versions, this is where we'd migrate from v -> STORAGE_VERSION.
+      // If in future we bump versions, this is where we'd migrate from raw.version -> STORAGE_VERSION.
       // For now, we simply normalize and clamp version.
       return { version: STORAGE_VERSION, notes: rawNotes.map(normalizeNote) };
     }
