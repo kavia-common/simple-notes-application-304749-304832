@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo, useRef } from "react";
 import { Card } from "./ui/Card";
 import { Input } from "./ui/Input";
 import { Button } from "./ui/Button";
@@ -17,17 +17,38 @@ export function NotesSidebar({
   loading = false,
   error = null,
 }) {
-  /** Sidebar with search/filter and keyboard navigable note list. */
+  /** Sidebar with search/filter and keyboard navigable note list (listbox/option + roving tabindex). */
+  const optionRefs = useRef({});
+
+  const activeId = useMemo(() => {
+    // Keep an active id for roving tabindex/focus even if selection is null.
+    if (selectedNoteId && notes.some((n) => n.id === selectedNoteId)) return selectedNoteId;
+    return notes[0]?.id ?? null;
+  }, [notes, selectedNoteId]);
+
   const onListKeyDown = (e, id) => {
-    if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+    if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
+
     e.preventDefault();
 
     const idx = notes.findIndex((n) => n.id === id);
     if (idx === -1) return;
 
-    const nextIdx = e.key === "ArrowDown" ? Math.min(notes.length - 1, idx + 1) : Math.max(0, idx - 1);
+    let nextIdx = idx;
+    if (e.key === "ArrowDown") nextIdx = Math.min(notes.length - 1, idx + 1);
+    if (e.key === "ArrowUp") nextIdx = Math.max(0, idx - 1);
+    if (e.key === "Home") nextIdx = 0;
+    if (e.key === "End") nextIdx = notes.length - 1;
+
     const next = notes[nextIdx];
-    if (next) onSelect(next.id);
+    if (!next) return;
+
+    onSelect(next.id);
+
+    // Ensure keyboard users get clear focus cues.
+    window.requestAnimationFrame(() => {
+      optionRefs.current[next.id]?.focus?.();
+    });
   };
 
   return (
@@ -83,6 +104,10 @@ export function NotesSidebar({
               selected={n.id === selectedNoteId}
               onSelect={onSelect}
               onKeyDown={onListKeyDown}
+              tabIndex={n.id === activeId ? 0 : -1}
+              setButtonRef={(el) => {
+                optionRefs.current[n.id] = el;
+              }}
             />
           ))}
         </ul>

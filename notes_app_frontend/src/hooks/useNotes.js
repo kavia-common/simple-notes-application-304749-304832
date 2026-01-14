@@ -3,6 +3,12 @@ import { useLocalStorage } from "./useLocalStorage";
 import { uuidV4 } from "../utils/uuid";
 
 const STORAGE_KEY = "ocean-notes:v1";
+const STORAGE_VERSION = 1;
+
+/**
+ * @typedef {import("../types/note").Note} Note
+ * @typedef {{ version: number, notes: Note[] }} NotesStorageEnvelope
+ */
 
 function normalizeNote(note) {
   const now = Date.now();
@@ -29,10 +35,51 @@ function seedNotes() {
   ];
 }
 
+function makeInitialEnvelope() {
+  return { version: STORAGE_VERSION, notes: seedNotes() };
+}
+
+function coerceEnvelope(raw) {
+  // Supports:
+  // - current format: {version, notes}
+  // - legacy format: Note[]
+  // Any invalid/unknown format falls back to initial seed.
+  if (Array.isArray(raw)) {
+    return { version: STORAGE_VERSION, notes: raw.map(normalizeNote) };
+  }
+
+  if (raw && typeof raw === "object") {
+    const v = typeof raw.version === "number" ? raw.version : STORAGE_VERSION;
+    const rawNotes = Array.isArray(raw.notes) ? raw.notes : null;
+    if (rawNotes) {
+      // If in future we bump versions, this is where we'd migrate from v -> STORAGE_VERSION.
+      // For now, we simply normalize and clamp version.
+      return { version: STORAGE_VERSION, notes: rawNotes.map(normalizeNote) };
+    }
+    // Object but not our shape -> reset.
+    return makeInitialEnvelope();
+  }
+
+  return makeInitialEnvelope();
+}
+
 // PUBLIC_INTERFACE
 export function useNotes() {
-  /** Manage notes (CRUD) + derived views (search/sort). Notes persist to localStorage. */
-  const [notes, setNotes] = useLocalStorage(STORAGE_KEY, seedNotes());
+  /** Manage notes (CRUD) + derived views (search/sort). Notes persist to localStorage with versioned schema. */
+  const [envelope, setEnvelope] = useLocalStorage(STORAGE_KEY, makeInitialEnvelope());
+
+  const notes = useMemo(() => coerceEnvelope(envelope).notes, [envelope]);
+
+  const setNotes = useCallback(
+    (updater) => {
+      setEnvelope((prev) => {
+        const current = coerceEnvelope(prev);
+        const nextNotes = typeof updater === "function" ? updater(current.notes) : updater;
+        return { version: STORAGE_VERSION, notes: (nextNotes ?? []).map(normalizeNote) };
+      });
+    },
+    [setEnvelope]
+  );
 
   const createNote = useCallback(() => {
     const now = Date.now();

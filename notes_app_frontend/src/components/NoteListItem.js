@@ -6,22 +6,26 @@ import { formatUpdatedAt } from "../utils/datetime";
  *  note: import("../types/note").Note,
  *  selected: boolean,
  *  onSelect: (id: string) => void,
- *  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => void
+ *  onKeyDown?: (e: React.KeyboardEvent<HTMLButtonElement>, id: string) => void,
+ *  tabIndex?: number
  * }} props
  */
 
 // PUBLIC_INTERFACE
-export function NoteListItem({ note, selected, onSelect, onKeyDown }) {
+export function NoteListItem({ note, selected, onSelect, onKeyDown, tabIndex = -1, setButtonRef }) {
   /** Sidebar note row with title/snippet/meta and selection state. */
   const snippet = (note.body ?? "").trim().slice(0, 140) || "No content yet…";
   const title = (note.title ?? "").trim() || "Untitled note";
 
   return (
-    <li>
+    <li role="presentation">
       <button
         type="button"
+        role="option"
+        tabIndex={tabIndex}
         className="kv-list-item kv-focus-ring"
         aria-selected={selected}
+        ref={setButtonRef}
         onClick={() => onSelect(note.id)}
         onKeyDown={(e) => onKeyDown?.(e, note.id)}
       >
