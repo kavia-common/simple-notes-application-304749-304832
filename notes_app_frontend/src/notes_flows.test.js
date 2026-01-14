@@ -102,8 +102,10 @@ test("search filters the sidebar list by title and by body", async () => {
 
   // Filter by title
   await user.type(screen.getByRole("textbox", { name: /search notes/i }), "beta");
+
+  // Assert using an accessible query that tolerates <mark> splitting text nodes.
   expect(within(listbox).getAllByRole("option")).toHaveLength(1);
-  expect(within(listbox).getByText("Beta note")).toBeInTheDocument();
+  expect(within(listbox).getByRole("option", { name: /beta\s*note/i })).toBeInTheDocument();
 
   // Clear search
   await user.click(screen.getByRole("button", { name: /clear search/i }));
@@ -112,7 +114,7 @@ test("search filters the sidebar list by title and by body", async () => {
   // Filter by body
   await user.type(screen.getByRole("textbox", { name: /search notes/i }), "keyword");
   expect(within(listbox).getAllByRole("option")).toHaveLength(1);
-  expect(within(listbox).getByText("Beta note")).toBeInTheDocument();
+  expect(within(listbox).getByRole("option", { name: /beta\s*note/i })).toBeInTheDocument();
 });
 
 test("editing content triggers autosave badge state changes (Saving… then Saved)", async () => {
