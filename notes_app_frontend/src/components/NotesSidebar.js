@@ -26,6 +26,8 @@ export function NotesSidebar({
     return notes[0]?.id ?? null;
   }, [notes, selectedNoteId]);
 
+  const activeOptionDomId = activeId ? `kv-note-option-${activeId}` : undefined;
+
   const onListKeyDown = (e, id) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp" && e.key !== "Home" && e.key !== "End") return;
 
@@ -96,10 +98,16 @@ export function NotesSidebar({
           />
         </div>
       ) : (
-        <ul className="kv-list" role="listbox" aria-label="Notes list">
+        <ul
+          className="kv-list"
+          role="listbox"
+          aria-label="Notes list"
+          aria-activedescendant={activeOptionDomId}
+        >
           {notes.map((n) => (
             <NoteListItem
               key={n.id}
+              id={`kv-note-option-${n.id}`}
               note={n}
               selected={n.id === selectedNoteId}
               onSelect={onSelect}

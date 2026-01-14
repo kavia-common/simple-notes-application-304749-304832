@@ -12,7 +12,7 @@ import { formatUpdatedAt } from "../utils/datetime";
  */
 
 // PUBLIC_INTERFACE
-export function NoteListItem({ note, selected, onSelect, onKeyDown, tabIndex = -1, setButtonRef }) {
+export function NoteListItem({ id, note, selected, onSelect, onKeyDown, tabIndex = -1, setButtonRef }) {
   /** Sidebar note row with title/snippet/meta and selection state. */
   const snippet = (note.body ?? "").trim().slice(0, 140) || "No content yet…";
   const title = (note.title ?? "").trim() || "Untitled note";
@@ -20,6 +20,7 @@ export function NoteListItem({ note, selected, onSelect, onKeyDown, tabIndex = -
   return (
     <li role="presentation">
       <button
+        id={id}
         type="button"
         role="option"
         tabIndex={tabIndex}

@@ -10,14 +10,38 @@ const STORAGE_VERSION = 1;
  * @typedef {{ version: number, notes: Note[] }} NotesStorageEnvelope
  */
 
+function isPlainObject(v) {
+  return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function toSafeString(v) {
+  if (typeof v === "string") return v;
+  if (v == null) return "";
+  try {
+    return String(v);
+  } catch {
+    return "";
+  }
+}
+
+function toSafeTimestamp(v, fallback) {
+  return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+}
+
 function normalizeNote(note) {
   const now = Date.now();
+  const createdAt = toSafeTimestamp(note?.createdAt, now);
+  const updatedAt = toSafeTimestamp(note?.updatedAt, now);
+
+  // Keep updatedAt from ever being older than createdAt (bad imports/migrations).
+  const safeUpdatedAt = Math.max(updatedAt, createdAt);
+
   return {
-    id: note.id ?? uuidV4(),
-    title: note.title ?? "",
-    body: note.body ?? "",
-    createdAt: typeof note.createdAt === "number" ? note.createdAt : now,
-    updatedAt: typeof note.updatedAt === "number" ? note.updatedAt : now,
+    id: typeof note?.id === "string" && note.id.trim() ? note.id : uuidV4(),
+    title: toSafeString(note?.title),
+    body: toSafeString(note?.body),
+    createdAt,
+    updatedAt: safeUpdatedAt,
   };
 }
 
@@ -48,11 +72,11 @@ function coerceEnvelope(raw) {
     return { version: STORAGE_VERSION, notes: raw.map(normalizeNote) };
   }
 
-  if (raw && typeof raw === "object") {
+  if (isPlainObject(raw)) {
     const rawNotes = Array.isArray(raw.notes) ? raw.notes : null;
     if (rawNotes) {
       // If in future we bump versions, this is where we'd migrate from raw.version -> STORAGE_VERSION.
-      // For now, we simply normalize and clamp version.
+      // For now, we normalize and clamp to current version.
       return { version: STORAGE_VERSION, notes: rawNotes.map(normalizeNote) };
     }
     // Object but not our shape -> reset.
@@ -67,6 +91,7 @@ export function useNotes() {
   /** Manage notes (CRUD) + derived views (search/sort). Notes persist to localStorage with versioned schema. */
   const [envelope, setEnvelope] = useLocalStorage(STORAGE_KEY, makeInitialEnvelope());
 
+  // Always coerce so malformed localStorage never breaks runtime (robust local-first behavior).
   const notes = useMemo(() => coerceEnvelope(envelope).notes, [envelope]);
 
   const setNotes = useCallback(
@@ -74,7 +99,11 @@ export function useNotes() {
       setEnvelope((prev) => {
         const current = coerceEnvelope(prev);
         const nextNotes = typeof updater === "function" ? updater(current.notes) : updater;
-        return { version: STORAGE_VERSION, notes: (nextNotes ?? []).map(normalizeNote) };
+
+        // Safe fallback: if updater returns something unexpected, keep current notes.
+        const nextArray = Array.isArray(nextNotes) ? nextNotes : current.notes;
+
+        return { version: STORAGE_VERSION, notes: nextArray.map(normalizeNote) };
       });
     },
     [setEnvelope]
