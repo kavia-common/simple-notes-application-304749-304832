@@ -103,6 +103,7 @@ export function NotesSidebar({
           role="listbox"
           aria-label="Notes list"
           aria-activedescendant={activeOptionDomId}
+          tabIndex={0}
         >
           {notes.map((n) => (
             <NoteListItem
